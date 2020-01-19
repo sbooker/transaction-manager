@@ -1,0 +1,24 @@
+{
+  "name": "sbooker/transaction-manager",
+  "description": "Abstraction for transaction control on an application tier.",
+  "type": "library",
+  "license": "MIT",
+  "authors": [
+    {
+      "name": "Sergey Knigin",
+      "email": "sergey.knigin.dev@gmail.com"
+    }
+  ],
+  "minimum-stability": "stable",
+  "require": {
+    "php": "^7.4"
+  },
+  "suggest": {
+    "sbooker/doctrine-transaction-handler": "For usage with Doctrine ORM"
+  },
+  "autoload": {
+    "psr-4": {
+      "Sbooker\\TransactionManager\\": "src/"
+    }
+  }
+}
