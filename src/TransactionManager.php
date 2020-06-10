@@ -6,7 +6,8 @@ namespace Sbooker\TransactionManager;
 
 final class TransactionManager
 {
-    private TransactionHandler $transactionHandler;
+    /** @var TransactionHandler  */
+    private $transactionHandler;
 
 
     public function __construct(TransactionHandler $transactionHandler)
@@ -41,17 +42,17 @@ final class TransactionManager
         $this->transactionHandler->clear();
     }
 
-    private function begin()
+    private function begin(): void
     {
         $this->transactionHandler->begin();
     }
 
-    private function commit()
+    private function commit(): void
     {
         $this->transactionHandler->commit();
     }
 
-    private function rollback()
+    private function rollback(): void
     {
         $this->transactionHandler->rollBack();
     }
