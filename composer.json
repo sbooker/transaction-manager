@@ -11,10 +11,11 @@
   ],
   "minimum-stability": "stable",
   "require": {
-    "php": "^7.4"
+    "php": "^7.4 || ^8.0"
   },
   "suggest": {
-    "sbooker/doctrine-transaction-handler": "For usage with Doctrine ORM"
+    "sbooker/doctrine-transaction-handler": "For usage with Doctrine ORM",
+    "sbooker/yii2-ar-transaction-handler": "For usage with Yii2 Active Record"
   },
   "autoload": {
     "psr-4": {
