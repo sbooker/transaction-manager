@@ -7,6 +7,7 @@ namespace Sbooker\TransactionManager;
 final class TransactionManager
 {
     private TransactionHandler $transactionHandler;
+    private int $nestingLevel = 0;
 
 
     public function __construct(TransactionHandler $transactionHandler)
@@ -43,16 +44,40 @@ final class TransactionManager
 
     private function begin(): void
     {
-        $this->transactionHandler->begin();
+        $this->increaseNestingLevel();
+        if ($this->isTopNestingLevel()) {
+            $this->transactionHandler->begin();
+        }
     }
 
     private function commit(): void
     {
-        $this->transactionHandler->commit();
+        if ($this->isTopNestingLevel()) {
+            $this->transactionHandler->commit();
+        }
+        $this->decreaseNestingLevel();
     }
 
     private function rollback(): void
     {
-        $this->transactionHandler->rollBack();
+        if ($this->isTopNestingLevel()) {
+            $this->transactionHandler->rollBack();
+        }
+        $this->decreaseNestingLevel();
+    }
+
+    private function increaseNestingLevel(): void
+    {
+        $this->nestingLevel+= 1;
+    }
+
+    private function decreaseNestingLevel(): void
+    {
+        $this->nestingLevel-= 1;
+    }
+
+    private function isTopNestingLevel(): bool
+    {
+        return $this->nestingLevel <= 1;
     }
 }

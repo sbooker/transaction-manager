@@ -13,9 +13,23 @@ Abstraction for transaction control on an application tier.
 composer require sbooker/transaction-manager
 ```
 
-## Example of usage
+## Nested transactions
 
-// TODO: Write example of usage.
+Nested transactions are ignored. 
+
+## Example of usage
+```php
+use Sbooker\TransactionManager\TransactionHandler;
+use Sbooker\TransactionManager\TransactionManager;
+
+$transactionHandler = new class implements TransactionHandler { ... };
+$transactionManager = new TransactionManager($transactionHandler);
+
+$transactionManager->transactional(function () {
+    // do something what need transaction
+});
+```
+ 
 
 ## License
 See [LICENSE][license] file.

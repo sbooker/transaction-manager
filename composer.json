@@ -13,13 +13,17 @@
   "require": {
     "php": "^7.4 || ^8.0"
   },
+  "require-dev": {
+    "phpunit/phpunit": "^9.5"
+  },
   "suggest": {
     "sbooker/doctrine-transaction-handler": "For usage with Doctrine ORM",
     "sbooker/yii2-ar-transaction-handler": "For usage with Yii2 Active Record"
   },
   "autoload": {
     "psr-4": {
-      "Sbooker\\TransactionManager\\": "src/"
+      "Sbooker\\TransactionManager\\": "src/",
+      "Sbooker\\TransactionManager\\Tests\\": "tests/"
     }
   }
 }
