@@ -78,7 +78,7 @@ final class NestingTransactionTest extends TestCase
         $mock = $this->createMock(TransactionHandler::class);
         $mock->expects($this->once())->method('begin');
         $mock->expects($this->exactly($commitCount))->method('commit');
-        $mock->expects($this->exactly($rollbackCount))->method('rollBack');
+        $mock->expects($this->exactly($rollbackCount))->method('rollback');
 
         return $mock;
     }

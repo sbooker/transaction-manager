@@ -6,13 +6,11 @@ namespace Sbooker\TransactionManager;
 
 final class TransactionManager
 {
-    private TransactionHandler $transactionHandler;
-    private int $nestingLevel = 0;
-
+    private ObjectTransactionHandler $transactionHandler;
 
     public function __construct(TransactionHandler $transactionHandler)
     {
-        $this->transactionHandler = $transactionHandler;
+        $this->transactionHandler = new ObjectTransactionHandler($transactionHandler);
     }
 
     /**
@@ -24,17 +22,38 @@ final class TransactionManager
     {
         $this->begin();
 
-        $result = null;
         try {
             $result = call_user_func($func);
         } catch (\Throwable $e) {
             $this->rollback();
             throw $e;
         }
-        // Make commit outside of try-catch block to avoid rollback on exception thrown by commit().
+        // Make commit outside try-catch block to avoid rollback on exception thrown by commit().
         $this->commit();
 
         return $result;
+    }
+
+    public function persist(object $entity): void
+    {
+        $this->transactionHandler->persist($entity);
+    }
+
+    public function save(object $entity): void
+    {
+        $this->transactionHandler->save($entity);
+    }
+
+    /**
+     * @template T
+     * @psalm-param class-string<T> $entityClassName
+     * @psalm-return T|null
+     *
+     * @param mixed $entityId
+     */
+    public function getLocked(string $entityClassName, $entityId): ?object
+    {
+        return $this->transactionHandler->getLocked($entityClassName, $entityId);
     }
 
     public function clear(): void
@@ -44,40 +63,16 @@ final class TransactionManager
 
     private function begin(): void
     {
-        $this->increaseNestingLevel();
-        if ($this->isTopNestingLevel()) {
-            $this->transactionHandler->begin();
-        }
+        $this->transactionHandler->begin();
     }
 
     private function commit(): void
     {
-        if ($this->isTopNestingLevel()) {
-            $this->transactionHandler->commit();
-        }
-        $this->decreaseNestingLevel();
+        $this->transactionHandler->commit();
     }
 
     private function rollback(): void
     {
-        if ($this->isTopNestingLevel()) {
-            $this->transactionHandler->rollBack();
-        }
-        $this->decreaseNestingLevel();
-    }
-
-    private function increaseNestingLevel(): void
-    {
-        $this->nestingLevel+= 1;
-    }
-
-    private function decreaseNestingLevel(): void
-    {
-        $this->nestingLevel-= 1;
-    }
-
-    private function isTopNestingLevel(): bool
-    {
-        return $this->nestingLevel <= 1;
+        $this->transactionHandler->rollback();
     }
 }

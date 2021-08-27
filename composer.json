@@ -22,7 +22,11 @@
   },
   "autoload": {
     "psr-4": {
-      "Sbooker\\TransactionManager\\": "src/",
+      "Sbooker\\TransactionManager\\": "src/"
+    }
+  },
+  "autoload-dev": {
+    "psr-4": {
       "Sbooker\\TransactionManager\\Tests\\": "tests/"
     }
   }
