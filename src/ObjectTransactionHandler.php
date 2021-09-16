@@ -10,17 +10,18 @@ namespace Sbooker\TransactionManager;
 final class ObjectTransactionHandler
 {
     private TransactionHandler $transactionHandler;
+    private ?PreCommitEntityProcessor $preCommitEntityProcessor;
     private int $nestingLevel = 0;
     private ObjectStorage $objectsToSave;
     private ObjectStorage $objectsToPersist;
 
-    public function __construct(TransactionHandler $transactionHandler)
+    public function __construct(TransactionHandler $transactionHandler, ?PreCommitEntityProcessor $preCommitEntityProcessor = null)
     {
         $this->transactionHandler = $transactionHandler;
+        $this->preCommitEntityProcessor = $preCommitEntityProcessor;
         $this->objectsToSave = new ObjectStorage();
         $this->objectsToPersist = new ObjectStorage();
     }
-
 
     public function begin(): void
     {
@@ -37,6 +38,7 @@ final class ObjectTransactionHandler
         }
 
         $this->objectsToPersist->addAtLevel($this->nestingLevel, $entity);
+        $this->transactionHandler->persist($entity);
     }
 
     public function save(object $entity): void
@@ -69,12 +71,28 @@ final class ObjectTransactionHandler
     public function commit(): void
     {
         if ($this->isTopNestingLevel()) {
-            $this->persistAll();
-            $this->saveAll();
-            $this->clearStorages();
+            $this->doCommit();
         }
 
         $this->decreaseNestingLevel();
+    }
+
+    private function doCommit(): void
+    {
+        $this->processEntities();
+        $this->saveAll();
+        $this->clearStorages();
+    }
+
+    private function processEntities(): void
+    {
+        if (null === $this->preCommitEntityProcessor) {
+            return;
+        }
+
+        foreach ($this->getAllStoredEntities() as $entity) {
+            $this->preCommitEntityProcessor->process($entity);
+        }
     }
 
     private function persistAll(): void
@@ -86,10 +104,18 @@ final class ObjectTransactionHandler
 
     private function saveAll(): void
     {
-        $this->transactionHandler->commit(array_merge(
+        $this->transactionHandler->commit($this->getAllStoredEntities());
+    }
+
+    /**
+     * @return array<object>
+     */
+    private function getAllStoredEntities(): array
+    {
+        return array_merge(
             $this->objectsToPersist->getFromAllLevels(),
             $this->objectsToSave->getFromAllLevels()
-        ));
+        );
     }
 
     public function rollback(): void
