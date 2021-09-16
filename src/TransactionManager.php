@@ -8,9 +8,12 @@ final class TransactionManager
 {
     private ObjectTransactionHandler $transactionHandler;
 
-    public function __construct(TransactionHandler $transactionHandler)
+    public function __construct(TransactionHandler $transactionHandler, ?PreCommitEntityProcessor $preCommitEntityProcessor = null)
     {
-        $this->transactionHandler = new ObjectTransactionHandler($transactionHandler);
+        $this->transactionHandler = new ObjectTransactionHandler($transactionHandler, $preCommitEntityProcessor);
+        if ($preCommitEntityProcessor instanceof TransactionManagerAware) {
+            $preCommitEntityProcessor->setTransactionManager($this);
+        }
     }
 
     /**
