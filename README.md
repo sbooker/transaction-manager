@@ -76,6 +76,7 @@ But sometimes you need process previously stored command with same domain logic 
 Of course in this case you want save command execution result. For example, for a next retry if execution fails.
 In this case you need nested transaction and outer transaction will not be rolled back.
 ```php
+$transactionManager = new TransactionManager(new ObjectTransactionHandler(new class implements TransactionHandler { ... }))
 $commandProcessor = new CommandProcessor($transactionManager);
 
 $transactionManager->transactional(function () use ($transactionManager, $commandId, $commandProcessor) {

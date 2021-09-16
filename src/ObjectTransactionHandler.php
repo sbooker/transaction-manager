@@ -4,10 +4,7 @@ declare(strict_types=1);
 
 namespace Sbooker\TransactionManager;
 
-/**
- * @internal
- */
-final class ObjectTransactionHandler
+final class ObjectTransactionHandler implements TransactionHandler
 {
     private TransactionHandler $transactionHandler;
     private int $nestingLevel = 0;
@@ -66,7 +63,7 @@ final class ObjectTransactionHandler
         return $entity;
     }
 
-    public function commit(): void
+    public function commit(array $entities = []): void
     {
         if ($this->isTopNestingLevel()) {
             $this->persistAll();

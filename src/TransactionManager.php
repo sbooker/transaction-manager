@@ -10,7 +10,7 @@ final class TransactionManager
 
     public function __construct(TransactionHandler $transactionHandler)
     {
-        $this->transactionHandler = new ObjectTransactionHandler($transactionHandler);
+        $this->transactionHandler = $transactionHandler;
     }
 
     /**

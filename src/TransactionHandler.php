@@ -10,7 +10,7 @@ interface TransactionHandler
 
     public function persist(object $entity): void;
 
-    public function commit(array $entities): void;
+    public function commit(array $entities = []): void;
 
     public function rollback(): void;
 

@@ -25,7 +25,7 @@ final class ObjectStorageTest extends TestCase
         $this->assertEquals([$firstObject], $storage->getFromAllLevels());
     }
 
-    public function testDuplecateAddition(): void
+    public function testDuplicateAddition(): void
     {
         $storage = new ObjectStorage();
         $object = (object)['p' => 'value'];
@@ -34,5 +34,16 @@ final class ObjectStorageTest extends TestCase
         $storage->addAtLevel(1, $object);
 
         $this->assertEquals([$object], $storage->getFromAllLevels());
+    }
+
+    public function testAddTwoLevels(): void
+    {
+        $storage = new ObjectStorage();
+        $firstObject = (object)['p' => 'first'];
+        $secondObject = (object)['p' => 'second'];
+        $storage->addAtLevel(1, $firstObject);
+        $storage->addAtLevel(2, $secondObject);
+
+        $this->assertEquals([$firstObject, $secondObject], $storage->getFromAllLevels());
     }
 }
