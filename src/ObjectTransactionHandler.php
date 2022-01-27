@@ -17,7 +17,7 @@ final class ObjectTransactionHandler
 
     public function __construct(TransactionHandler $transactionHandler, ?PreCommitEntityProcessor $preCommitEntityProcessor = null)
     {
-        $this->transactionHandler = $transactionHandler;
+        $this->transactionHandler = new IdentityMap($transactionHandler);
         $this->preCommitEntityProcessor = $preCommitEntityProcessor;
         $this->objectsToSave = new ObjectStorage();
         $this->objectsToPersist = new ObjectStorage();
