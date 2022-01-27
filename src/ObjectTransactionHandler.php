@@ -17,7 +17,7 @@ final class ObjectTransactionHandler
 
     public function __construct(TransactionHandler $transactionHandler, ?PreCommitEntityProcessor $preCommitEntityProcessor = null)
     {
-        $this->transactionHandler = $transactionHandler;
+        $this->transactionHandler = new IdentityMap($transactionHandler);
         $this->preCommitEntityProcessor = $preCommitEntityProcessor;
         $this->objectsToSave = new ObjectStorage();
         $this->objectsToPersist = new ObjectStorage();
@@ -38,7 +38,6 @@ final class ObjectTransactionHandler
         }
 
         $this->objectsToPersist->addAtLevel($this->nestingLevel, $entity);
-        $this->transactionHandler->persist($entity);
     }
 
     public function save(object $entity): void
@@ -80,8 +79,9 @@ final class ObjectTransactionHandler
     private function doCommit(): void
     {
         $this->processEntities();
+        $this->persistAll();
         $this->saveAll();
-        $this->clearStorages();
+        $this->clear();
     }
 
     private function processEntities(): void
