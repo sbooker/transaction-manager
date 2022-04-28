@@ -88,7 +88,18 @@ $transactionManager->transactional(function () use ($transactionManager, $comman
    }
 });
 ```
- 
+
+**Attention!**
+```php
+$entityId = ...;
+$transactionManager->transactional(function () use ($transactionManager, $entityId) {
+    $entity = new SomeEntity($entityId);
+    $transactionManager->persist($entity);
+    
+    // Depends on TransactionHandler implementation $persistedEntity may be null in same transaction with persist
+    $persistedEntity = $transactionManager->getLocked($entityId);    
+}
+```   
 
 ## License
 See [LICENSE][license] file.

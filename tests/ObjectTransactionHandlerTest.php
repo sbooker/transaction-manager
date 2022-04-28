@@ -67,7 +67,7 @@ final class ObjectTransactionHandlerTest extends TestCase
     {
         $entity = new \stdClass();
         $mock = $this->createTransactionHandlerMock();
-        $mock->expects($this->once())->method('persist')->with($entity);
+        $mock->expects($this->never())->method('persist');
         $mock->expects($this->never())->method('commit');
         $mock->expects($this->once())->method('rollback');
         $handler = new ObjectTransactionHandler($mock);
@@ -114,7 +114,7 @@ final class ObjectTransactionHandlerTest extends TestCase
         $entityToSave = (object)['p' => 'save'];
         $entityToPersist = (object)['p' => 'persist'];
         $mock = $this->createTransactionHandlerMock();
-        $mock->expects($this->once())->method('persist')->with($entityToPersist);
+        $mock->expects($this->never())->method('persist');
         $mock->expects($this->once())->method('commit')->with([$entityToSave]);
         $mock->expects($this->never())->method('rollback');
         $handler = new ObjectTransactionHandler($mock);
@@ -151,7 +151,7 @@ final class ObjectTransactionHandlerTest extends TestCase
         $entityToSave = (object)['p' => 'save'];
         $entityToPersist = (object)['p' => 'persist'];
         $mock = $this->createTransactionHandlerMock();
-        $mock->expects($this->once())->method('persist')->with($entityToPersist);
+        $mock->expects($this->never())->method('persist');
         $mock->expects($this->never())->method('commit');
         $mock->expects($this->once())->method('rollback');
         $handler = new ObjectTransactionHandler($mock);
