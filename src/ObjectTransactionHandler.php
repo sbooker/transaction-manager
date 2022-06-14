@@ -124,8 +124,17 @@ final class ObjectTransactionHandler
             $this->transactionHandler->rollback();
         }
 
-        $this->objectsToPersist->clearLevelsLowestAndEqualsThan($this->nestingLevel);
-        $this->objectsToSave->clearLevelsLowestAndEqualsThan($this->nestingLevel);
+        $objectsToDetach = $this->objectsToPersist->getAndclearLevelsLowestAndEqualsThan($this->nestingLevel);
+
+        foreach ($objectsToDetach as $objectToDetach) {
+            $this->transactionHandler->detach($objectToDetach);
+        }
+
+        $objectsToDetach = $this->objectsToSave->getAndclearLevelsLowestAndEqualsThan($this->nestingLevel);
+        
+        foreach ($objectsToDetach as $objectToDetach) {
+            $this->transactionHandler->detach($objectToDetach);
+        }
 
         $this->decreaseNestingLevel();
     }

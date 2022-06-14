@@ -6,7 +6,8 @@ namespace Sbooker\TransactionManager;
 
 final class IdentityMap implements TransactionHandler
 {
-    private array $map;
+    private array $map = [];
+    private array $entityIdentifiers = [];
     private TransactionHandler $transactionHandler;
 
     public function __construct(TransactionHandler $transactionHandler)
@@ -22,6 +23,20 @@ final class IdentityMap implements TransactionHandler
     public function persist(object $entity): void
     {
         $this->transactionHandler->persist($entity);
+    }
+
+    public function detach(object $entity): void
+    {
+        $oid = spl_object_hash($entity);
+
+        if (isset($this->entityIdentifiers[$oid])) {
+            if (isset($this->map[get_class($entity)][$this->entityIdentifiers[$oid]])) {
+                unset($this->map[get_class($entity)][$this->entityIdentifiers[$oid]]);
+            }
+            unset($this->entityIdentifiers[$oid]);
+        }
+
+        $this->transactionHandler->detach($entity);
     }
 
     public function commit(array $entities): void
@@ -54,6 +69,7 @@ final class IdentityMap implements TransactionHandler
         }
 
         $this->map[$entityClassName][$id] = $entity;
+        $this->entityIdentifiers[spl_object_hash($entity)] = $id;
 
         return $this->map[$entityClassName][$id];
     }

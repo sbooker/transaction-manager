@@ -22,11 +22,18 @@ final class ObjectStorage
         $this->store = [];
     }
 
-    public function clearLevelsLowestAndEqualsThan(int $level): void
+    public function getAndClearLevelsLowestAndEqualsThan(int $level): array
     {
+        $result = [];
+        
         for($i = $level; $i <= $this->getMaxLevel(); $i++) {
-            unset($this->store[$i]);
+            if (isset($this->store[$i])) {
+                $result = array_merge($result, $this->store[$i]);
+                unset($this->store[$i]);
+            }
         }
+        
+        return array_values($result);
     }
 
     private function getMaxLevel(): int
