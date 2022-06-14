@@ -50,6 +50,7 @@ final class NestingTransactionTest extends TestCase
         $firstEntityId = 1;
         $secondEntityId = 2;
         $firstEntity = (object)['a' => 'a'];
+        $secondEntity = (object)['b' => 'b'];
 
         $spy = new TransactionHandlerSpy();
         $transactionManager = new TransactionManager($spy);
@@ -82,6 +83,7 @@ final class NestingTransactionTest extends TestCase
         $this->assertEquals(2, $spy->getGetLockedCount());
         $this->assertEquals('Message', $exception->getMessage());
         $this->assertEquals(0, $spy->getRollbackCount());
+        $this->assertEquals([$secondEntity], $spy->getDetached());
     }
 
     /**
@@ -139,6 +141,7 @@ final class NestingTransactionTest extends TestCase
 final class TransactionHandlerSpy implements TransactionHandler {
     private int $beginCount = 0;
     private array $persisted = [];
+    private array $detached = [];
     private array $committed = [];
     private int $rollbackCount = 0;
     private int $clearCount = 0;
@@ -147,6 +150,8 @@ final class TransactionHandlerSpy implements TransactionHandler {
     public function begin(): void { $this->beginCount += 1; }
 
     public function persist(object $entity): void { $this->persisted[] = $entity; }
+
+    public function detach(object $entity): void { $this->detached[] = $entity; }
 
     public function commit(array $entities): void { $this->committed[] = $entities; }
 
@@ -177,6 +182,11 @@ final class TransactionHandlerSpy implements TransactionHandler {
     public function getPersisted(): array
     {
         return $this->persisted;
+    }
+
+    public function getDetached(): array
+    {
+        return $this->detached;
     }
 
     public function getCommitted(): array
