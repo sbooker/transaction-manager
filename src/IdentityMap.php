@@ -39,9 +39,9 @@ final class IdentityMap implements TransactionHandler
         $this->transactionHandler->detach($entity);
     }
 
-    public function commit(array $entities): void
+    public function commit(): void
     {
-        $this->transactionHandler->commit($entities);
+        $this->transactionHandler->commit();
     }
 
     public function rollback(): void
@@ -89,5 +89,10 @@ final class IdentityMap implements TransactionHandler
             default:
                 throw new \RuntimeException("Invalid identifier type ");
         }
+    }
+
+    public function save(object $entity): void
+    {
+        $this->transactionHandler->save($entity);
     }
 }

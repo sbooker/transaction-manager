@@ -6,14 +6,18 @@ namespace Sbooker\TransactionManager;
 
 final class TransactionManager
 {
-    private ObjectTransactionHandler $transactionHandler;
+    private TransactionHandler $transactionHandler;
+    private ?PreCommitEntityProcessor $preCommitEntityProcessor;
+
+    private ?Transaction $topLevelTransaction = null;
 
     public function __construct(TransactionHandler $transactionHandler, ?PreCommitEntityProcessor $preCommitEntityProcessor = null)
     {
-        $this->transactionHandler = new ObjectTransactionHandler($transactionHandler, $preCommitEntityProcessor);
         if ($preCommitEntityProcessor instanceof TransactionManagerAware) {
             $preCommitEntityProcessor->setTransactionManager($this);
         }
+        $this->transactionHandler = new IdentityMap($transactionHandler);
+        $this->preCommitEntityProcessor = $preCommitEntityProcessor;
     }
 
     /**
@@ -21,61 +25,29 @@ final class TransactionManager
      *
      * @throws \Throwable
      */
-    public function transactional(callable $func)
+    public function transactional(callable $fn)
     {
-        $this->begin();
+        $transaction = $this->begin();
 
         try {
-            $result = call_user_func($func);
+            $result = $fn($transaction->isolated());
+            $transaction->commit();
         } catch (\Throwable $e) {
-            $this->rollback();
+            $transaction->rollback();
             throw $e;
         }
-        // Make commit outside try-catch block to avoid rollback on exception thrown by commit().
-        $this->commit();
 
         return $result;
     }
 
-    public function persist(object $entity): void
+    private function begin(): Transaction
     {
-        $this->transactionHandler->persist($entity);
-    }
+        if (null === $this->topLevelTransaction) {
+            $this->topLevelTransaction = Transaction::begin($this->transactionHandler, $this->preCommitEntityProcessor);
 
-    public function save(object $entity): void
-    {
-        $this->transactionHandler->save($entity);
-    }
+            return $this->topLevelTransaction;
+        }
 
-    /**
-     * @template T
-     * @psalm-param class-string<T> $entityClassName
-     * @psalm-return T|null
-     *
-     * @param mixed $entityId
-     */
-    public function getLocked(string $entityClassName, $entityId): ?object
-    {
-        return $this->transactionHandler->getLocked($entityClassName, $entityId);
-    }
-
-    public function clear(): void
-    {
-        $this->transactionHandler->clear();
-    }
-
-    private function begin(): void
-    {
-        $this->transactionHandler->begin();
-    }
-
-    private function commit(): void
-    {
-        $this->transactionHandler->commit();
-    }
-
-    private function rollback(): void
-    {
-        $this->transactionHandler->rollback();
+        return $this->topLevelTransaction->beginNested();
     }
 }

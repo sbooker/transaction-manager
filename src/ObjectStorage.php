@@ -9,12 +9,12 @@ namespace Sbooker\TransactionManager;
  */
 final class ObjectStorage
 {
-    /** @var array<int, <array<object>>  */
+    /** @var array<int, object>  */
     private array $store = [];
 
-    public function addAtLevel(int $level, object $object): void
+    public function add(object $object): void
     {
-        $this->store[$level][spl_object_hash($object)] = $object;
+        $this->store[spl_object_hash($object)] = $object;
     }
 
     public function clear(): void
@@ -22,39 +22,13 @@ final class ObjectStorage
         $this->store = [];
     }
 
-    public function getAndClearLevelsLowestAndEqualsThan(int $level): array
+    public function remove(object $object): void
     {
-        $result = [];
-        
-        for($i = $level; $i <= $this->getMaxLevel(); $i++) {
-            if (isset($this->store[$i])) {
-                $result = array_merge($result, $this->store[$i]);
-                unset($this->store[$i]);
-            }
-        }
-        
-        return array_values($result);
+        unset($this->store[spl_object_hash($object)]);
     }
 
-    private function getMaxLevel(): int
+    public function getAll(): array
     {
-        $levels = array_keys($this->store);
-        if (count($levels) > 0) {
-            return max($levels);
-        }
-
-        return 0;
-    }
-
-    public function getFromAllLevels(): array
-    {
-        return
-            array_values(
-                array_reduce(
-                    $this->store,
-                    fn(array $carry, array $objectsAtLevel): array => array_merge($carry, $objectsAtLevel),
-                    []
-                )
-            );
+        return $this->store;
     }
 }

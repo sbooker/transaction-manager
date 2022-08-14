@@ -12,7 +12,9 @@ interface TransactionHandler
 
     public function detach(object $entity): void;
 
-    public function commit(array $entities): void;
+    public function save(object $entity): void;
+
+    public function commit(): void;
 
     public function rollback(): void;
 

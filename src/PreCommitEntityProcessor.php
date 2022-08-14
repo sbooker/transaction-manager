@@ -6,5 +6,5 @@ namespace Sbooker\TransactionManager;
 
 interface PreCommitEntityProcessor
 {
-    public function process(object $entity): void;
+    public function process(EntityManager $em, object $entity): void;
 }
