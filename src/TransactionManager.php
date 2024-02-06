@@ -19,6 +19,7 @@ final class TransactionManager
     /**
      * @return mixed
      *
+     * @throws UniqueConstraintViolation
      * @throws \Throwable
      */
     public function transactional(callable $func)
@@ -69,6 +70,9 @@ final class TransactionManager
         $this->transactionHandler->begin();
     }
 
+    /**
+     * @throws UniqueConstraintViolation
+     */
     private function commit(): void
     {
         $this->transactionHandler->commit();

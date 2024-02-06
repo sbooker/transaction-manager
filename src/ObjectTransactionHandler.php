@@ -67,6 +67,9 @@ final class ObjectTransactionHandler
         return $entity;
     }
 
+    /**
+     * @throws UniqueConstraintViolation
+     */
     public function commit(): void
     {
         if ($this->isTopNestingLevel()) {
@@ -76,6 +79,9 @@ final class ObjectTransactionHandler
         $this->decreaseNestingLevel();
     }
 
+    /**
+     * @throws UniqueConstraintViolation
+     */
     private function doCommit(): void
     {
         $this->processEntities();
@@ -102,6 +108,9 @@ final class ObjectTransactionHandler
         }
     }
 
+    /**
+     * @throws UniqueConstraintViolation
+     */
     private function saveAll(): void
     {
         $this->transactionHandler->commit($this->getAllStoredEntities());

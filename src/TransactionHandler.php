@@ -12,6 +12,9 @@ interface TransactionHandler
 
     public function detach(object $entity): void;
 
+    /**
+     * @throws UniqueConstraintViolation
+     */
     public function commit(array $entities): void;
 
     public function rollback(): void;
