@@ -151,7 +151,6 @@ final class ObjectTransactionHandler
     public function clear(): void
     {
         $this->clearStorages();
-        $this->nestingLevel = 0;
         $this->transactionHandler->clear();
     }
 
