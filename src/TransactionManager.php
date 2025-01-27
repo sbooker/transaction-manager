@@ -33,7 +33,12 @@ final class TransactionManager
             throw $e;
         }
         // Make commit outside try-catch block to avoid rollback on exception thrown by commit().
-        $this->commit();
+        try {
+            $this->commit();
+        } catch (UniqueConstraintViolation $e) {
+            $this->rollback();
+            throw $e;
+        }
 
         return $result;
     }
