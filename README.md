@@ -1,4 +1,4 @@
-[Read in English](README_EN.MD)
+[Read in English](README_EN.md)
 
 # Менеджер Транзакций (`sbooker/transaction-manager`)
 
