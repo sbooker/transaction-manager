@@ -1,6 +1,6 @@
-# Transaction manager
+[Read in English](README_EN.MD)
 
-Abstraction for transaction control on an application tier.
+# Менеджер Транзакций (`sbooker/transaction-manager`)
 
 [![Latest Version][badge-release]][release]
 [![Software License][badge-license]][license]
@@ -9,87 +9,120 @@ Abstraction for transaction control on an application tier.
 [![Build Status](https://travis-ci.org/sbooker/transaction-manager.svg?branch=2.x.x)](https://travis-ci.org/sbooker/transaction-manager)
 [![codecov](https://codecov.io/gh/sbooker/transaction-manager/branch/2.x.x/graph/badge.svg?token=3uCI9t0M2Q)](https://codecov.io/gh/sbooker/transaction-manager)
 
-## Installation
+Реализация паттерна Unit of Work, которая навязывает безопасные и явные практики управления транзакциями и предоставляет мощный механизм хуков перед коммитом.
+
+## Философия и назначение
+
+Библиотека построена на двух ключевых принципах, призванных защитить разработчика от распространенных ошибок:
+
+1.  **Явные границы транзакций.** Библиотека намеренно не предоставляет публичные методы `begin()` и `commit()`. Единственный способ выполнить операцию — через замыкание `transactional()`. Такой подход делает границы транзакции абсолютно явными и защищает от трудноуловимых багов, когда `begin()` и `commit()` разнесены по разным частям кода.
+
+2.  **Безопасная работа с сущностями.** Библиотека предоставляет единственный метод для извлечения сущностей с целью их изменения — `getLocked()`. Это также сделано намеренно, чтобы:
+    *   **Заставить разработчика использовать блокировки** (пессимистичные или оптимистичные, в зависимости от реализации `TransactionHandler`), что предотвращает гонки данных по умолчанию.
+    *   **Устранить необходимость в репозиториях** внутри кода, который изменяет состояние системы. Ваш прикладной код зависит только от `TransactionManager`, что делает его проще и чище.
+
+## Ключевые особенности
+
+*   **Явные границы транзакций:** Метод `transactional()` — единственный способ выполнить атомарную операцию.
+*   **Единый механизм загрузки с блокировкой:** Метод `getLocked()` — единственный способ получить сущность для изменения, что заставляет использовать блокировки и предотвращает проблемы параллельного доступа.
+*   **Паттерн Unit of Work:** Управляет списком измененных и новых объектов и сохраняет их все в одной транзакции.
+*   **Абстракция над ORM:** Ваша бизнес-логика зависит только от `TransactionManager`.
+*   **Поддержка вложенных транзакций:** Безопасные вызовы `transactional()` внутри другого `transactional()`.
+*   **Хук перед коммитом (`PreCommitEntityProcessor`):** Позволяет создавать мощные инструменты, такие как сохранение доменных событий.
+
+## Установка
 
 ```bash
 composer require sbooker/transaction-manager
 ```
 
-## Example of usage
-```php
-use Sbooker\TransactionManager\TransactionHandler;
-use Sbooker\TransactionManager\TransactionManager;
+## Быстрый старт
 
+### Шаг 1: Подключите `TransactionHandler`
 
-$transactionManager = new TransactionManager(new class implements TransactionHandler { ... });
+Для работы `TransactionManager` требуется "мост" к вашей ORM. Мы предоставляем готовые реализации:
 
-class Entity {
-    /**
-     * @throws \Exception 
-     */  
-    public function update(): void { ... }
-}
-```
-### Example 1. Create entity
-```php
-$transactionManager->transactional(function () use ($transactionManager) {
-    $transactionManager->persist(new Entity());
-});
-```
-### Example 2. Update entity using only TransactionManager
-```php
-$transactionManager->transactional(function () use ($transactionManager, $entityId) {
-    $entity = $transactionManager->getLocked(Entity::class, $entityId);
-    $entity->update(); // if exception throws, transaction will be rolled back
-});
-```
-### Example 3. Update entity using repository
-```php
-$transactionManager->transactional(function () use ($transactionManager, $entityRepository, $criteria) {
-    $entity = $entityRepository->getLocked($criteria);
-    $entity->update(); // if exception throws, transaction will be rolled back
-    $transactionManager->save($entity);
-});
-```
-### Example 4. Nested transactions support
+*   **Для Doctrine ORM:** `composer require sbooker/doctrine-transaction-handler`
+*   **Для Yii2 Active Record:** `composer require sbooker/yii2-ar-transaction-handler`
 
-Usually you need only single transaction to process single command (See examples before).
-Usually you do it in Application Layer service (so-called Command Processor).
+Если вы используете другую ORM, вам нужно будет создать свой адаптер, реализующий интерфейс `TransactionHandler`.
+
+### Шаг 2: Соберите `TransactionManager`
+
 ```php
-final class CommandProcessor {
+// bootstrap.php или ваш DI-контейнер
+/** @var Sbooker\DoctrineTransactionHandler\TransactionHandler $transactionHandler */
+$transactionManager = new Sbooker\TransactionManager\TransactionManager($transactionHandler);
+```
+
+### Шаг 3: Используйте в прикладном коде
+
+#### Пример создания сущности
+
+```php
+// src/Products/Application/Handler.php
+final class Handler
+{
     private TransactionManager $transactionManager;
-    ...
-    /** @throws \Exception */
-    public function update($entityId): void
+    // ...
+
+    public function handle(Command $command): void
     {
-        $transactionManager->transactional(function () use ($transactionManager, $entityId) {
-            $entity = $transactionManager->getLocked(Entity::class, $entityId);
-            $entity->update(); 
+        $this->transactionManager->transactional(function () use ($command): void {
+            $product = new Product(/* ... */);
+            // Регистрируем новую сущность для сохранения
+            $this->transactionManager->persist($product);
         });
     }
 }
-``` 
-It's work well while you simple call Application Layer from Presentation Layer synchronously. 
-For example using HTTP request and converts it to command in controller. 
-
-But sometimes you need process previously stored command with same domain logic as from HTTP request. 
-Of course in this case you want save command execution result. For example, for a next retry if execution fails.
-In this case you need nested transaction and outer transaction will not be rolled back.
-```php
-$commandProcessor = new CommandProcessor($transactionManager);
-
-$transactionManager->transactional(function () use ($transactionManager, $commandId, $commandProcessor) {
-    $command = $transactionManager->getLocked(Command::class, $commandId);
-   try {
-        $commandProcessor->update($command->getEntityId());
-        $command->setSuccessExecutionState();
-   } catch (\Exception) {
-        $command->setFailExecutionState(); 
-   }
-});
 ```
 
-**Attention!**
+#### Пример изменения сущности
+
+Этот пример демонстрирует всю мощь подхода. Обратите внимание: здесь нет репозиториев.
+
+```php
+// src/Products/Application/Handler.php
+final class Handler
+{
+    private TransactionManager $transactionManager;
+    // ...
+
+    public function handle(Command $command): void
+    {
+        $this->transactionManager->transactional(function () use ($command): void {
+            // 1. Получаем сущность с блокировкой. Это единственный способ.
+            /** @var Product|null $product */
+            $product = $this->transactionManager->getLocked(Product::class, $command->getProductId());
+
+            if (null === $product) {
+                throw new Exception('Product not found.');
+            }
+
+            // 2. Выполняем бизнес-логику
+            $product->changeName($command->getNewName());
+
+            // 3. НЕ НУЖНО вызывать persist() или save()!
+            // Сущность, полученная через getLocked(), уже находится под управлением Unit of Work.
+        });
+    }
+}
+```
+
+### Шаг 4 (Продвинутый): Добавление `PreCommitProcessor`
+
+Зарегистрируйте ваш процессор в конструкторе `TransactionManager`, и он будет автоматически вызываться для всех сущностей (`new Product` из первого примера и `$product` из второго) перед коммитом.
+
+```php
+// bootstrap.php или ваш DI-контейнер
+$loggingProcessor = new LoggingProcessor($logger);
+$transactionManager = new Sbooker\TransactionManager\TransactionManager(
+    $transactionHandler,
+    $loggingProcessor
+);
+```
+
+**Внимание!**
 ```php
 $entityId = ...;
 $transactionManager->transactional(function () use ($transactionManager, $entityId) {
