@@ -13,7 +13,7 @@ An implementation of the Unit of Work pattern that enforces safe and explicit tr
 
 ## Philosophy and Purpose
 
-The library is built on two key principles designed to protect developers from common mistakes:
+The library is designed to work reliably in long-running processes (workers, consumers) and is built on three key principles:
 
 1.  **Explicit Transaction Boundaries.** The library intentionally does not provide public `begin()` and `commit()` methods. The only way to perform an operation is through the `transactional()` closure. This approach makes transaction boundaries absolutely explicit and protects against hard-to-find bugs where `begin()` and `commit()` are scattered across different parts of the code.
 
@@ -21,8 +21,11 @@ The library is built on two key principles designed to protect developers from c
     *   **Force the developer to use locks** (pessimistic or optimistic, depending on the `TransactionHandler` implementation), which prevents data races by default.
     *   **Eliminate the need for repositories** within code that modifies the system's state. Your application code depends only on the `TransactionManager`, making it simpler and cleaner.
 
+3. **Automatic State Management.** After every transactional() operation, the transaction manager completely clears its internal state. This prevents memory leaks and ensures that each transaction starts with a "clean slate," which is critical for a robust worker operation.
+
 ## Key Features
 
+*   **Automatic State Clearing:** After every commit or rollback, the transaction manager completely clears its internal state (the Unit of Work) and the state of the underlying handler. This prevents memory leaks and ensures operation isolation in long-running processes.
 *   **Explicit Transaction Boundaries:** The `transactional()` method is the only way to perform an atomic operation.
 *   **Single Loading Mechanism with Locking:** The `getLocked()` method is the only way to retrieve an entity for modification, forcing the use of locks and preventing concurrent access issues.
 *   **Unit of Work Pattern:** Manages a list of modified and new objects and persists them all in a single transaction.
@@ -73,6 +76,7 @@ final class Handler
             // Register the new entity for persistence
             $this->transactionManager->persist($product);
         });
+        // After this block, the manager's internal state is completely cleared.
     }
 }
 ```
@@ -105,6 +109,7 @@ final class Handler
             // 3. NO need to call persist() or save()!
             // An entity retrieved via getLocked() is already managed by the Unit of Work.
         });
+        // The Unit of Work is also completely cleared here.
     }
 }
 ```
