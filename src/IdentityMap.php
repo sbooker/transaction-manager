@@ -52,6 +52,7 @@ final class IdentityMap implements TransactionHandler
     public function clear(): void
     {
         $this->map = [];
+        $this->entityIdentifiers = [];
         $this->transactionHandler->clear();
     }
 

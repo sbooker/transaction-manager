@@ -56,6 +56,27 @@ final class IdentityMapTest extends TestCase
         $this->assertEquals($entity, $givenEntity);
     }
 
+    /**
+     * @covers \Sbooker\TransactionManager\IdentityMap
+     */
+    public function testClearReleasesEntityIdentifiers(): void
+    {
+        $entity = new SomeEntity();
+        $identityMap = new IdentityMap($this->createTransactionHandler(SomeEntity::class, 1, $entity, 1, 1));
+
+        $identityMap->getLocked(SomeEntity::class, 1);
+        $identityMap->clear();
+
+        $this->assertSame([], $this->readEntityIdentifiers($identityMap));
+    }
+
+    private function readEntityIdentifiers(IdentityMap $identityMap): array
+    {
+        $property = new \ReflectionProperty(IdentityMap::class, 'entityIdentifiers');
+
+        return $property->getValue($identityMap);
+    }
+
     public function dataProvider(): array
     {
         return [
