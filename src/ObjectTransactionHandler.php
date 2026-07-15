@@ -23,11 +23,20 @@ final class ObjectTransactionHandler
         $this->objectsToPersist = new ObjectStorage();
     }
 
+    /**
+     * @throws \Throwable
+     */
     public function begin(): void
     {
         $this->increaseNestingLevel();
         if ($this->isTopNestingLevel()) {
-            $this->transactionHandler->begin();
+            try {
+                $this->transactionHandler->begin();
+            } catch (\Throwable $exception) {
+                $this->decreaseNestingLevel();
+
+                throw $exception;
+            }
         }
     }
 
@@ -69,11 +78,21 @@ final class ObjectTransactionHandler
 
     /**
      * @throws UniqueConstraintViolation
+     * @throws \Throwable
      */
     public function commit(): void
     {
         if ($this->isTopNestingLevel()) {
-            $this->doCommit();
+            try {
+                $this->doCommit();
+            } catch (UniqueConstraintViolation $exception) {
+                throw $exception;
+            } catch (\Throwable $exception) {
+                $this->rollbackQuietly();
+                $this->reset();
+
+                throw $exception;
+            }
         }
 
         $this->decreaseNestingLevel();
@@ -129,29 +148,50 @@ final class ObjectTransactionHandler
 
     public function rollback(): void
     {
-        if ($this->isTopNestingLevel()) {
-            $this->transactionHandler->rollback();
+        $isTopNestingLevel = $this->isTopNestingLevel();
+
+        try {
+            $objectsToDetach = array_merge(
+                $this->objectsToPersist->getAndclearLevelsLowestAndEqualsThan($this->nestingLevel),
+                $this->objectsToSave->getAndclearLevelsLowestAndEqualsThan($this->nestingLevel)
+            );
+
+            if ($isTopNestingLevel) {
+                $this->transactionHandler->rollback();
+            }
+
+            foreach ($objectsToDetach as $objectToDetach) {
+                $this->transactionHandler->detach($objectToDetach);
+            }
+
+            if ($isTopNestingLevel) {
+                $this->clear();
+            }
+        } finally {
+            $this->decreaseNestingLevel();
         }
-
-        $objectsToDetach = $this->objectsToPersist->getAndclearLevelsLowestAndEqualsThan($this->nestingLevel);
-
-        foreach ($objectsToDetach as $objectToDetach) {
-            $this->transactionHandler->detach($objectToDetach);
-        }
-
-        $objectsToDetach = $this->objectsToSave->getAndclearLevelsLowestAndEqualsThan($this->nestingLevel);
-        
-        foreach ($objectsToDetach as $objectToDetach) {
-            $this->transactionHandler->detach($objectToDetach);
-        }
-
-        $this->decreaseNestingLevel();
     }
 
     public function clear(): void
     {
         $this->clearStorages();
         $this->transactionHandler->clear();
+    }
+
+    private function rollbackQuietly(): void
+    {
+        try {
+            $this->transactionHandler->rollback();
+        } catch (\Throwable $ignored) {
+            // Handler may have already ended the transaction by itself. Such a
+            // failure must not mask the exception that broke the commit.
+        }
+    }
+
+    private function reset(): void
+    {
+        $this->nestingLevel = 0;
+        $this->clear();
     }
 
     private function clearStorages(): void
