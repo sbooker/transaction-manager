@@ -152,8 +152,8 @@ final class ObjectTransactionHandler
 
         try {
             $objectsToDetach = array_merge(
-                $this->objectsToPersist->getAndclearLevelsLowestAndEqualsThan($this->nestingLevel),
-                $this->objectsToSave->getAndclearLevelsLowestAndEqualsThan($this->nestingLevel)
+                $this->objectsToPersist->getAndClearLevelsDeeperAndEqualsThan($this->nestingLevel),
+                $this->objectsToSave->getAndClearLevelsDeeperAndEqualsThan($this->nestingLevel)
             );
 
             if ($isTopNestingLevel) {

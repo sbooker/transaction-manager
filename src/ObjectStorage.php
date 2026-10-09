@@ -22,7 +22,7 @@ final class ObjectStorage
         $this->store = [];
     }
 
-    public function getAndClearLevelsLowestAndEqualsThan(int $level): array
+    public function getAndClearLevelsDeeperAndEqualsThan(int $level): array
     {
         $result = [];
         

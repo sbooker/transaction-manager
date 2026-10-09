@@ -78,17 +78,22 @@ final class IdentityMap implements TransactionHandler
     /**
      * @param mixed $entityId
      * @return string
+     * @throws \InvalidArgumentException if $entityId can't be convert to string
      */
-    private function stringifyEntityId($entityId): string
+    private function stringifyEntityId(mixed $entityId): string
     {
         switch (true) {
             case is_scalar($entityId):
+                return (string)$entityId;
             case is_object($entityId):
                 if ($entityId instanceof \BackedEnum) {
                     return (string)$entityId->value;
                 }
+                if ($entityId instanceof \Stringable) {
+                    return $entityId->__toString();
+                }
 
-                return (string)$entityId;
+                throw new \InvalidArgumentException("EntityId '" . var_export($entityId, true) . "' can't be converted to string" );
             case is_array($entityId):
                 return implode('_', array_map(fn($part): string => $this->stringifyEntityId($part), $entityId));
             default:

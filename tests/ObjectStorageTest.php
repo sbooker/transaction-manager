@@ -20,7 +20,7 @@ final class ObjectStorageTest extends TestCase
         $storage->addAtLevel(1, $firstObject);
         $storage->addAtLevel(2, $secondObject);
 
-        $objectsToDetach = $storage->getAndClearLevelsLowestAndEqualsThan(2);
+        $objectsToDetach = $storage->getAndClearLevelsDeeperAndEqualsThan(2);
 
         $this->assertEquals([$firstObject], $storage->getFromAllLevels());
         $this->assertEquals([$secondObject], $objectsToDetach);
