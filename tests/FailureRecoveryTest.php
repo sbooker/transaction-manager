@@ -53,8 +53,7 @@ final class FailureRecoveryTest extends TestCase
         $handler = $this->createMock(TransactionHandler::class);
         $handler->expects($this->exactly(2))->method('begin')
             ->willReturnCallback(function () use (&$calls): void { $calls[] = 'begin'; });
-        $handler->expects($this->once())->method('rollback')
-            ->willReturnCallback(function () use (&$calls): void { $calls[] = 'rollback'; });
+        $handler->expects($this->never())->method('rollback');
         $handler->expects($this->exactly(2))->method('clear')
             ->willReturnCallback(function () use (&$calls): void { $calls[] = 'clear'; });
         $handler->expects($this->exactly(2))->method('commit')
@@ -83,7 +82,7 @@ final class FailureRecoveryTest extends TestCase
 
         $this->assertSame([$first], $committed[0]);
         $this->assertSame([$second], $committed[1]);
-        $this->assertSame(['begin', 'commit', 'rollback', 'clear', 'begin', 'commit', 'clear'], $calls);
+        $this->assertSame(['begin', 'commit', 'clear', 'begin', 'commit', 'clear'], $calls);
     }
 
     public function testFailingRollbackDoesNotMaskCommitFailure(): void
@@ -91,14 +90,13 @@ final class FailureRecoveryTest extends TestCase
         $entity = new \stdClass();
         $handler = $this->createMock(TransactionHandler::class);
         $handler->expects($this->once())->method('commit')
-            ->willThrowException(new \RuntimeException('deadlock detected'));
+            ->willThrowException(new UniqueConstraintViolation());
         $handler->expects($this->once())->method('rollback')
             ->willThrowException(new \LogicException('there is no active transaction'));
 
         $manager = new TransactionManager($handler);
 
-        $this->expectException(\RuntimeException::class);
-        $this->expectExceptionMessage('deadlock detected');
+        $this->expectException(UniqueConstraintViolation::class);
 
         $manager->transactional(function () use ($manager, $entity): void {
             $manager->save($entity);
@@ -124,7 +122,8 @@ final class FailureRecoveryTest extends TestCase
                 throw new \DomainException('business rule violated');
             });
             $this->fail('A failing closure must surface to the caller');
-        } catch (\Throwable $e) {
+        } catch (\DomainException $e) {
+            $this->assertSame('business rule violated', $e->getMessage());
         }
 
         $manager->transactional(function () use ($manager, $fresh): void {

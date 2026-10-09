@@ -29,18 +29,28 @@ final class TransactionManager
         try {
             $result = call_user_func($func);
         } catch (\Throwable $e) {
-            $this->rollback();
+            $this->rollbackQuietly();
             throw $e;
         }
+
         // Make commit outside try-catch block to avoid rollback on exception thrown by commit().
         try {
             $this->commit();
         } catch (UniqueConstraintViolation $e) {
-            $this->rollback();
+            $this->rollbackQuietly();
             throw $e;
         }
 
         return $result;
+    }
+
+    private function rollbackQuietly(): void
+    {
+        try {
+            $this->rollback();
+        } catch (\Throwable $ignored) {
+            // Rollback failure must not mask the original exception
+        }
     }
 
     public function persist(object $entity): void
